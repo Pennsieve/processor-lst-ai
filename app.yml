@@ -61,7 +61,7 @@ outputs:
       PROBABILITY_MAP) and <sub>_desc-wmhregions_dseg.nii.gz (McDonald region
       labels 1-4, unless SEGMENT_ONLY); plus provenance.json.
     mediaTypes: [application/x-nifti-gz, application/json]
-  - name: lesion_volumes
+  - name: lesion-volumes
     description: >-
       <sub>_lesions.csv and the cohort lesions.csv (subject,lesion_volume_mm3,
       lesion_count; 26-connectivity components), plus LST-AI's per-region

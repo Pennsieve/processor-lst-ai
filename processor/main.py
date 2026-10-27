@@ -13,9 +13,9 @@ back to the FLAIR grid):
   OUTPUT_DIR/lesions/<sub>_desc-wmh_mask.nii.gz            binary lesion mask (uint8)
   OUTPUT_DIR/lesions/<sub>_desc-wmh_probseg.nii.gz         ensemble probability map (PROBABILITY_MAP)
   OUTPUT_DIR/lesions/<sub>_desc-wmhregions_dseg.nii.gz     McDonald-region labels (not SEGMENT_ONLY)
-  OUTPUT_DIR/lesion_volumes/<sub>_lesions.csv              subject,lesion_volume_mm3,lesion_count
-  OUTPUT_DIR/lesion_volumes/<sub>_lesionregions.csv        LST-AI's per-region stats (not SEGMENT_ONLY)
-  OUTPUT_DIR/lesion_volumes/lesions.csv                    all subjects
+  OUTPUT_DIR/lesion-volumes/<sub>_lesions.csv              subject,lesion_volume_mm3,lesion_count
+  OUTPUT_DIR/lesion-volumes/<sub>_lesionregions.csv        LST-AI's per-region stats (not SEGMENT_ONLY)
+  OUTPUT_DIR/lesion-volumes/lesions.csv                    all subjects
   OUTPUT_DIR/lesions/provenance.json
 
 This is an optional branch of the workflow: with no FLAIR (or no T1w) at all
@@ -46,7 +46,7 @@ log = logging.getLogger("processor-lst-ai")
 
 APP = "processor-lst-ai"
 TOOL = "LST-AI"
-OUTPUTS = ["lesions", "lesion_volumes"]
+OUTPUTS = ["lesions", "lesion-volumes"]
 CSV_HEADER = ["subject", "lesion_volume_mm3", "lesion_count"]
 
 # What `lst` writes (see /usr/local/bin/lst in the image).
@@ -157,14 +157,14 @@ def run_subject(sub: str, t1w: Path, flair: Path, lesions_dir: Path, volumes_dir
             stats = out_dir / LST_ANNOTATED_STATS
             if stats.is_file():
                 shutil.copyfile(stats, volumes_dir / f"{sub}_lesionregions.csv")
-                outputs.append(f"lesion_volumes/{sub}_lesionregions.csv")
+                outputs.append(f"lesion-volumes/{sub}_lesionregions.csv")
 
         row = {"subject": sub, "lesion_volume_mm3": f"{volume:.3f}", "lesion_count": count}
         with open(volumes_dir / f"{sub}_lesions.csv", "w", newline="") as f:
             w = csv.DictWriter(f, fieldnames=CSV_HEADER)
             w.writeheader()
             w.writerow(row)
-        outputs.append(f"lesion_volumes/{sub}_lesions.csv")
+        outputs.append(f"lesion-volumes/{sub}_lesions.csv")
 
         seconds = round(time.monotonic() - t0, 1)
         log.info("[%s] done in %ss: %d lesions, %.1f mm3", sub, seconds, count, volume)
@@ -201,7 +201,7 @@ def main() -> int:
     }
     started = datetime.now(timezone.utc)
     lesions_dir = output_dir_for(output_dir, OUTPUTS, "lesions")
-    volumes_dir = output_dir_for(output_dir, OUTPUTS, "lesion_volumes")
+    volumes_dir = output_dir_for(output_dir, OUTPUTS, "lesion-volumes")
     version = Path(__file__).resolve().parent.parent.joinpath("VERSION").read_text().strip() \
         if Path(__file__).resolve().parent.parent.joinpath("VERSION").is_file() else "0.1.0"
     provenance = {

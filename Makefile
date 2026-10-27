@@ -17,7 +17,7 @@ help:
 
 test: clean
 	INPUT_DIR=data/input OUTPUT_DIR=data/output SEGMENT_ONLY=true PROBABILITY_MAP=true THRESHOLD=0.5 THREADS=4 python3 -m processor.main
-	@cat data/output/lesion_volumes/lesions.csv
+	@cat data/output/lesion-volumes/lesions.csv
 
 run: clean
 	mkdir -p data/output

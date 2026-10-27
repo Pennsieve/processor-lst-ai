@@ -49,7 +49,7 @@ subject's FLAIR space.
 | | `<sub>_desc-wmh_probseg.nii.gz` — ensemble lesion probability map, float32 in [0,1] (when `PROBABILITY_MAP=true`; LST-AI's `space-FLAIR_seg-lst_prob.nii.gz` from its temp folder) |
 | | `<sub>_desc-wmhregions_dseg.nii.gz` — lesion voxels labelled 1 periventricular, 2 juxtacortical, 3 subcortical, 4 infratentorial (only when `SEGMENT_ONLY=false`) |
 | | `provenance.json` — app/tool versions, parameters, per-subject inputs, outputs, exact `lst` argv and seconds; `skipped: true` when there was nothing to segment |
-| `lesion_volumes` | `<sub>_lesions.csv` — `subject,lesion_volume_mm3,lesion_count` (volume = mask voxels × voxel volume; count = 26-connectivity connected components of the mask, `scipy.ndimage.label` with a 3×3×3 structure) |
+| `lesion-volumes` | `<sub>_lesions.csv` — `subject,lesion_volume_mm3,lesion_count` (volume = mask voxels × voxel volume; count = 26-connectivity connected components of the mask, `scipy.ndimage.label` with a 3×3×3 structure) |
 | | `lesions.csv` — the same rows for every segmented subject (header only when none) |
 | | `<sub>_lesionregions.csv` — LST-AI's own per-region table (`Region,Num_Lesions,Num_Vox,Lesion_Volume`; only when `SEGMENT_ONLY=false`) |
 
@@ -72,7 +72,7 @@ absent input is not a failure:
 
 - **No FLAIR files at all** (input not bound, or the folder is empty): logs
   `no FLAIR volumes found; lesion segmentation skipped`, creates `lesions/` and
-  `lesion_volumes/` (with `lesions.csv` holding only the header and
+  `lesion-volumes/` (with `lesions.csv` holding only the header and
   `provenance.json` with `"skipped": true`) and **exits 0**.
 - **FLAIRs but no T1w at all**: same, with a clear log line, exit 0.
 - FLAIRs and T1ws exist but no subject has both: exit 1 with both lists in the log.
@@ -103,7 +103,7 @@ Docker Desktop, `THREADS=4`, `--segment_only --probability_map`:
 ```sh
 ./sample-input/fetch-sample.sh   # one T1w + FLAIR pair (CC0, OpenNeuro) into data/input/
 make run                         # builds the image and runs it as uid 1000 over data/input/
-ls data/output/lesions data/output/lesion_volumes
+ls data/output/lesions data/output/lesion-volumes
 ```
 
 `dev.env` holds the environment the container sees (`INPUT_DIR`, `OUTPUT_DIR` and the
