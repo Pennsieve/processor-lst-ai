@@ -5,7 +5,7 @@ For every subject that has both a T1w and a FLAIR volume, runs
 
     lst --t1 <T1w> --flair <FLAIR> --output <tmp>/out --temp <tmp>/work
         --device cpu --threads THREADS --threshold THRESHOLD
-        [--segment_only] [--probability_map]
+        [--segment_only] [--fast-mode] [--probability_map]
 
 and keeps, in FLAIR space (LST-AI segments in MNI space and warps the result
 back to the FLAIR grid):
@@ -121,6 +121,8 @@ def run_subject(sub: str, t1w: Path, flair: Path, lesions_dir: Path, volumes_dir
         ]
         if params["SEGMENT_ONLY"]:
             cmd.append("--segment_only")
+        if params["FAST_MODE"]:
+            cmd.append("--fast-mode")
         if params["PROBABILITY_MAP"]:
             cmd.append("--probability_map")
         env = dict(os.environ)
@@ -195,6 +197,7 @@ def main() -> int:
 
     params = {
         "SEGMENT_ONLY": env_bool("SEGMENT_ONLY", True),
+        "FAST_MODE": env_bool("FAST_MODE", True),
         "PROBABILITY_MAP": env_bool("PROBABILITY_MAP", True),
         "THRESHOLD": env_num("THRESHOLD", 0.5, float),
         "THREADS": max(1, env_num("THREADS", 4, int)),

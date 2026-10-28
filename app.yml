@@ -28,6 +28,14 @@ parameters:
       infratentorial). Annotation runs a whole-brain FastSurfer segmentation and
       is much slower on CPU.
     defaultValue: true
+  - name: FAST_MODE
+    type: boolean
+    description: >-
+      Brain extraction with one HD-BET model instead of the five-model ensemble
+      (lst --fast-mode). On a CPU task each HD-BET model takes about ten
+      minutes, so the ensemble alone is close to an hour per subject; one model
+      is adequate for lesion segmentation. Turn off for the full ensemble.
+    defaultValue: true
   - name: PROBABILITY_MAP
     type: boolean
     description: Also keep the ensemble's lesion probability map (FLAIR space) as <sub>_desc-wmh_probseg.nii.gz.
