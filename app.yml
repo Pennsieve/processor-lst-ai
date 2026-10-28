@@ -6,7 +6,10 @@ application:
     Segments white-matter hyperintensities (MS-type lesions) from a paired T1w
     and FLAIR volume with LST-AI 2.0.0rc1 (Wiltgen, McGinnis et al. 2024,
     NeuroImage: Clinical 42:103611), a PyTorch ensemble of three 3D U-Nets with
-    greedy registration and HD-BET skull stripping, on CPU. Takes the raw
+    greedy registration and HD-BET skull stripping. Runs on the gpu runtime
+    (a subject takes a couple of minutes) or on a standard CPU task (10-60
+    minutes per subject): the image carries CUDA and DEVICE=auto picks the GPU
+    when there is one. Takes the raw
     (not skull-stripped) T1w and FLAIR NIfTI volumes of each subject, matched by
     subject label, and writes a binary lesion mask and a lesion probability map
     in FLAIR space, optionally McDonald-region labels, plus per-subject and
@@ -17,9 +20,19 @@ application:
 runtime:
   cpu: 4096
   memory: 16384
-  computeTypes: [standard]
+  computeTypes: [standard, gpu]
   timeoutSeconds: 7200
 parameters:
+  - name: DEVICE
+    type: string
+    description: >-
+      Where PyTorch runs: auto picks cuda when a GPU is visible and cpu
+      otherwise. On the gpu runtime a subject finishes LST-AI in a couple of
+      minutes; on a standard (CPU) task it takes 10-60 minutes. The image
+      carries CUDA, so the same build runs on both; cuda on a host without a
+      GPU falls back to cpu with a warning.
+    defaultValue: auto
+    validValues: [auto, cuda, cpu]
   - name: SEGMENT_ONLY
     type: boolean
     description: >-

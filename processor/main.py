@@ -4,8 +4,14 @@ processor-lst-ai: white-matter lesion (WMH) segmentation with LST-AI.
 For every subject that has both a T1w and a FLAIR volume, runs
 
     lst --t1 <T1w> --flair <FLAIR> --output <tmp>/out --temp <tmp>/work
-        --device cpu --threads THREADS --threshold THRESHOLD
+        --device <0|cpu> --threads THREADS --threshold THRESHOLD
         [--segment_only] [--fast-mode] [--probability_map]
+
+The device comes from DEVICE (auto, cuda or cpu): auto takes cuda when torch
+sees a GPU and cpu otherwise, so the same (CUDA) image runs on the gpu and the
+standard (CPU Fargate) runtime. `lst --device` wants a bare GPU id or "cpu"
+(its strip.py does int(device); segment.py builds f"cuda:{device}"), so cuda
+is passed as `--device 0`.
 
 and keeps, in FLAIR space (LST-AI segments in MNI space and warps the result
 back to the FLAIR grid):
@@ -54,6 +60,7 @@ LST_MASK = "space-flair_seg-lst.nii.gz"                       # in --output
 LST_ANNOTATED = "space-flair_desc-annotated_seg-lst.nii.gz"   # in --output, unless --segment_only
 LST_ANNOTATED_STATS = "annotated_lesion_stats.csv"            # in --output, unless --segment_only
 LST_PROBMAP = "sub-X_ses-Y_space-FLAIR_seg-lst_prob.nii.gz"   # in --temp, with --probability_map
+LST_DEVICE = {"cuda": "0", "cpu": "cpu"}                      # our device -> `lst --device` (GPU id or cpu)
 
 
 def env_bool(name: str, default: bool) -> bool:
@@ -72,6 +79,32 @@ def env_num(name: str, default, cast):
     except ValueError:
         log.warning("%s=%r is not a %s; using %s", name, v, cast.__name__, default)
         return default
+
+
+def choose_device(requested: str) -> tuple[str, str, str]:
+    """(normalised DEVICE, device for `lst --device`, one-line reason).
+
+    `auto` picks cuda when torch sees a GPU, else cpu. An explicit `cuda` on a
+    host without a GPU falls back to cpu (the caller logs that as a warning)
+    rather than failing: the step still finishes, just slower.
+    """
+    requested = (requested or "auto").strip().lower()
+    if requested not in ("auto", "cuda", "cpu"):
+        log.warning("DEVICE=%r is not auto, cuda or cpu; using auto", requested)
+        requested = "auto"
+    if requested == "cpu":
+        return requested, "cpu", "DEVICE=cpu: using cpu"
+    try:
+        import torch
+    except ImportError:
+        return requested, "cpu", f"DEVICE={requested}: torch is not importable, using cpu"
+    try:
+        if torch.cuda.is_available():
+            return requested, "cuda", f"DEVICE={requested}: using cuda: {torch.cuda.get_device_name(0)}"
+        why = "cuda not available"
+    except Exception as exc:  # a broken CUDA runtime must not take the step down
+        why = f"cuda check failed ({exc})"
+    return requested, "cpu", f"DEVICE={requested}: {why}, using cpu"
 
 
 def tool_version() -> str:
@@ -116,7 +149,7 @@ def run_subject(sub: str, t1w: Path, flair: Path, lesions_dir: Path, volumes_dir
         cmd = [
             "lst", "--t1", str(t1w_in), "--flair", str(flair_in),
             "--output", str(out_dir), "--temp", str(work_dir),
-            "--device", "cpu", "--threads", str(params["THREADS"]),
+            "--device", LST_DEVICE[params["device"]], "--threads", str(params["THREADS"]),
             "--threshold", str(params["THRESHOLD"]),
         ]
         if params["SEGMENT_ONLY"]:
@@ -171,8 +204,8 @@ def run_subject(sub: str, t1w: Path, flair: Path, lesions_dir: Path, volumes_dir
         seconds = round(time.monotonic() - t0, 1)
         log.info("[%s] done in %ss: %d lesions, %.1f mm3", sub, seconds, count, volume)
         return {"subject": sub, "inputs": [f"t1w/{t1w.name}", f"flair/{flair.name}"], "outputs": outputs,
-                "command": cmd, "seconds": seconds, "lesion_volume_mm3": round(volume, 3), "lesion_count": count,
-                "row": row}
+                "command": cmd, "device": params["device"], "seconds": seconds,
+                "lesion_volume_mm3": round(volume, 3), "lesion_count": count, "row": row}
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 
@@ -195,12 +228,17 @@ def main() -> int:
         log.error("INPUT_DIR %s is not a folder", input_dir)
         return 2
 
+    requested, device, why = choose_device(os.environ.get("DEVICE", "auto"))
+    (log.warning if requested == "cuda" and device == "cpu" else log.info)(why)
     params = {
+        "DEVICE": requested,
         "SEGMENT_ONLY": env_bool("SEGMENT_ONLY", True),
         "FAST_MODE": env_bool("FAST_MODE", True),
         "PROBABILITY_MAP": env_bool("PROBABILITY_MAP", True),
         "THRESHOLD": env_num("THRESHOLD", 0.5, float),
         "THREADS": max(1, env_num("THREADS", 4, int)),
+        # the device actually used (lowercase: not a declared parameter)
+        "device": device,
     }
     started = datetime.now(timezone.utc)
     lesions_dir = output_dir_for(output_dir, OUTPUTS, "lesions")
@@ -209,7 +247,8 @@ def main() -> int:
         if Path(__file__).resolve().parent.parent.joinpath("VERSION").is_file() else "0.1.0"
     provenance = {
         "app": APP, "appVersion": version, "tool": TOOL, "toolVersion": tool_version(),
-        "startedAt": started.isoformat(), "finishedAt": None, "parameters": params,
+        "startedAt": started.isoformat(), "finishedAt": None,
+        "parameters": {k: v for k, v in params.items() if k.isupper()}, "device": device,
         "skipped": False, "subjects": [],
     }
 

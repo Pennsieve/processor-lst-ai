@@ -2,12 +2,12 @@
 
 White-matter hyperintensity (WMH / MS-type lesion) segmentation for the
 **Clinical Brain MRI Volumetrics** workflow, with [LST-AI](https://github.com/CompImg/LST-AI)
-2.0.0rc1 (Wiltgen, McGinnis et al. 2024) on CPU. For every subject that has both a
-T1w and a FLAIR volume it runs
+2.0.0rc1 (Wiltgen, McGinnis et al. 2024), on a GPU when the step has one and on CPU
+otherwise. For every subject that has both a T1w and a FLAIR volume it runs
 
 ```
 lst --t1 <T1w> --flair <FLAIR> --output <tmp>/out --temp <tmp>/work \
-    --device cpu --threads THREADS --threshold THRESHOLD [--segment_only] [--probability_map]
+    --device <0|cpu> --threads THREADS --threshold THRESHOLD [--segment_only] [--fast-mode] [--probability_map]
 ```
 
 and keeps the binary lesion mask, the ensemble probability map and (unless
@@ -19,9 +19,13 @@ its three 3D U-Nets on the 192³ MNI grid, averages them, thresholds, and warps 
 result back onto the **FLAIR grid**. All files this app writes are therefore in
 **native FLAIR space** (same shape and affine as the input FLAIR), not MNI.
 
-The base image is `jqmcginnis/lst-ai:v2.0.0rc1-cpu` (multi-arch amd64/arm64,
-weights and atlas bundled, nothing downloaded at run time). The tag `v2.0.0-cpu` the
-LST-AI README mentions does not exist yet. See [THIRD_PARTY.md](THIRD_PARTY.md) for
+The base image is `jqmcginnis/lst-ai:v2.0.0rc1`, the CUDA build (multi-arch
+amd64/arm64, weights and atlas bundled, nothing downloaded at run time). It is big:
+about 11 GB to pull and 16.5 GB unpacked (the `-cpu` tag is 4.5 GB), because it carries
+the CUDA PyTorch wheel (`2.13.0+cu126`) and the NVIDIA libraries; that is the price of one
+image that runs on both the GPU and the CPU runtime. Expect the first pull on a node to
+take a while. The tag `v2.0.0` the LST-AI README mentions does not exist yet. See
+[THIRD_PARTY.md](THIRD_PARTY.md) for
 licences and citations. LST-AI is a research tool, not validated or approved for
 clinical use.
 
@@ -57,6 +61,7 @@ subject's FLAIR space.
 
 | Parameter | Type | Default | |
 |---|---|---|---|
+| `DEVICE` | string | `auto` | `auto`, `cuda` or `cpu`. `auto` takes `cuda` when `torch.cuda.is_available()` and `cpu` otherwise; `cuda` on a host without a GPU falls back to `cpu` with a WARNING rather than failing. `cuda` is passed to `lst` as `--device 0` (LST-AI wants a bare GPU id or `cpu`; `lst --device cuda` would crash in HD-BET's `int(device)`). The choice is logged once at start and recorded as `device` in `provenance.json` |
 | `SEGMENT_ONLY` | boolean | `true` | Pass `--segment_only`: skip the FastSurfer-based annotation of lesions into McDonald regions. Annotation runs a whole-brain FastSurferVINN segmentation and is much slower on CPU; set to `false` to get `<sub>_desc-wmhregions_dseg.nii.gz` |
 | `FAST_MODE` | boolean | `true` | `--fast-mode`: one HD-BET model for brain extraction instead of the five-model ensemble; each model takes about ten minutes on a 4 vCPU task. `false` runs the full ensemble |
 | `PROBABILITY_MAP` | boolean | `true` | Pass `--probability_map` and keep the ensemble probability map |
@@ -64,7 +69,7 @@ subject's FLAIR space.
 | `THREADS` | integer | `4` | `--threads` for the greedy registrations; also exported as `OMP_NUM_THREADS` so torch uses the same number |
 
 Not exposed (LST-AI defaults): `--lesion_threshold 0` (no minimum lesion size),
-`--clipping 0.5 99.5`, `--device cpu`.
+`--clipping 0.5 99.5`.
 
 ## Optional branch: when there is nothing to segment
 
@@ -80,17 +85,27 @@ absent input is not a failure:
 - Per-subject failures are logged and the other subjects continue; exit 1 only when
   **every** attempted subject failed.
 
-## Runtime
+## Runtimes
 
-`computeTypes: [standard]`, 4 vCPU / 16 GiB, `timeoutSeconds: 7200`. Container only
-(no Lambda: a run takes far longer than 15 minutes). Runs as uid 1000; the image sets
-`HOME=/tmp` so torch/FastSurfer caches have somewhere to go. Each subject's LST-AI
-temp folder (about 1 GB with probability maps) is deleted after the subject.
+`computeTypes: [standard, gpu]`, 4 vCPU / 16 GiB, `timeoutSeconds: 7200`. Container
+only (no Lambda: a CPU run takes far longer than 15 minutes, and the image is over the
+10 GB Lambda limit). The same image serves both runtimes:
 
-### Measured (one subject, default parameters)
+- **standard**: a CPU Fargate task. `DEVICE=auto` finds no GPU and runs on cpu;
+  10-60 minutes per subject depending on `FAST_MODE` and `SEGMENT_ONLY`.
+- **gpu**: the compute node's GPU instance. The container sees the NVIDIA device,
+  `torch.cuda.is_available()` is true, and LST-AI (HD-BET, the U-Net ensemble and,
+  with `SEGMENT_ONLY=false`, FastSurfer) finishes in a couple of minutes per subject.
+
+Runs as uid 1000; the image sets `HOME=/tmp` so torch/FastSurfer caches have somewhere
+to go. Each subject's LST-AI temp folder (about 1 GB with probability maps) is deleted
+after the subject.
+
+### Measured (one subject, default parameters, CPU)
 
 OpenNeuro ds000221 sub-010200 (1 mm MP2RAGE UNI T1w, 1 mm 3D FLAIR), native arm64
-Docker Desktop, `THREADS=4`, `--segment_only --probability_map`:
+Docker Desktop with the `-cpu` base image (0.1.x), `THREADS=4`,
+`--segment_only --probability_map`:
 
 - affine registration to MNI (greedy) + HD-BET (5-fold, accurate mode) on the UNI T1w:
   about 5.5 minutes, no error on the MP2RAGE image; memory 1-3 GiB.
@@ -108,10 +123,12 @@ ls data/output/lesions data/output/lesion-volumes
 ```
 
 `dev.env` holds the environment the container sees (`INPUT_DIR`, `OUTPUT_DIR` and the
-four parameters). The base image is multi-arch; `make run` uses your machine's
+parameters). The base image is multi-arch; `make run` uses your machine's
 architecture. To test the exact platform build on Apple silicon, export
-`DOCKER_DEFAULT_PLATFORM=linux/amd64` first (slow under emulation). `make test` runs the
-processor with the local Python (it needs `lst-ai` installed).
+`DOCKER_DEFAULT_PLATFORM=linux/amd64` first (slow under emulation). On a machine with
+an NVIDIA GPU add `--gpus all` to the `docker run` (or `deploy.resources` in the
+compose file) and `DEVICE=auto` will use it. `make test` runs the processor with the
+local Python (it needs `lst-ai` installed).
 
 ## Citation
 
