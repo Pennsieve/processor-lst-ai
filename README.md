@@ -58,13 +58,13 @@ subject's FLAIR space.
 | Parameter | Type | Default | |
 |---|---|---|---|
 | `SEGMENT_ONLY` | boolean | `true` | Pass `--segment_only`: skip the FastSurfer-based annotation of lesions into McDonald regions. Annotation runs a whole-brain FastSurferVINN segmentation and is much slower on CPU; set to `false` to get `<sub>_desc-wmhregions_dseg.nii.gz` |
-| `FAST_MODE` | `true` | One HD-BET model for brain extraction instead of the five-model ensemble (`--fast-mode`); each model is ~10 min on a CPU task |
+| `FAST_MODE` | boolean | `true` | `--fast-mode`: one HD-BET model for brain extraction instead of the five-model ensemble; each model takes about ten minutes on a 4 vCPU task. `false` runs the full ensemble |
 | `PROBABILITY_MAP` | boolean | `true` | Pass `--probability_map` and keep the ensemble probability map |
 | `THRESHOLD` | number | `0.5` | `--threshold`: probability above which a voxel is a lesion |
 | `THREADS` | integer | `4` | `--threads` for the greedy registrations; also exported as `OMP_NUM_THREADS` so torch uses the same number |
 
 Not exposed (LST-AI defaults): `--lesion_threshold 0` (no minimum lesion size),
-`--clipping 0.5 99.5`, full HD-BET ensemble (no `--fast-mode`), `--device cpu`.
+`--clipping 0.5 99.5`, `--device cpu`.
 
 ## Optional branch: when there is nothing to segment
 
