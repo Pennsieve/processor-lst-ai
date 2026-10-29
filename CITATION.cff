@@ -1,0 +1,163 @@
+cff-version: "1.2.0"
+message: If you use this app, please cite it and the works it builds on, listed under references.
+type: software
+title: LST-AI Lesion Segmentation
+abstract: Segments white-matter hyperintensities (MS-type lesions) from paired T1w and FLAIR volumes with
+  LST-AI, an ensemble of three 3D U-Nets, on a GPU or CPU. Writes a binary lesion mask and probability
+  map per subject plus lesion volume and count tables.
+authors:
+- name: Pennsieve (University of Pennsylvania)
+repository-code: https://github.com/pennsieve-apps/processor-lst-ai
+license: Apache-2.0
+keywords:
+- neuroimaging
+- mri
+- nifti
+- lst-ai
+- lesions
+- wmh
+references:
+- type: article
+  title: 'LST-AI: A deep learning ensemble for accurate MS lesion segmentation'
+  authors:
+  - family-names: Wiltgen
+    given-names: Tun
+  - family-names: McGinnis
+    given-names: Julian
+  - family-names: Schlaeger
+    given-names: Sarah
+  - family-names: Kofler
+    given-names: Florian
+  - family-names: Voon
+    given-names: CuiCi
+  - family-names: Berthele
+    given-names: Achim
+  - family-names: Bischl
+    given-names: Daria
+  - family-names: Grundl
+    given-names: Lioba
+  - family-names: Will
+    given-names: Nikolaus
+  - family-names: Metz
+    given-names: Marie
+  - family-names: Schinz
+    given-names: David
+  - family-names: Sepp
+    given-names: Dominik
+  - family-names: Prucker
+    given-names: Philipp
+  - family-names: Schmitz-Koep
+    given-names: Benita
+  - family-names: Zimmer
+    given-names: Claus
+  - family-names: Menze
+    given-names: Bjoern
+  - family-names: Rueckert
+    given-names: Daniel
+  - family-names: Hemmer
+    given-names: Bernhard
+  - family-names: Kirschke
+    given-names: Jan
+  - family-names: Mühlau
+    given-names: Mark
+  - family-names: Wiestler
+    given-names: Benedikt
+  year: 2024
+  journal: 'NeuroImage: Clinical'
+  volume: 42
+  start: '103611'
+  doi: 10.1016/j.nicl.2024.103611
+- type: article
+  title: Automated brain extraction of multisequence MRI using artificial neural networks
+  authors:
+  - family-names: Isensee
+    given-names: Fabian
+  - family-names: Schell
+    given-names: Marianne
+  - family-names: Pflueger
+    given-names: Irada
+  - family-names: Brugnara
+    given-names: Gianluca
+  - family-names: Bonekamp
+    given-names: David
+  - family-names: Neuberger
+    given-names: Ulf
+  - family-names: Wick
+    given-names: Antje
+  - family-names: Schlemmer
+    given-names: Heinz-Peter
+  - family-names: Heiland
+    given-names: Sabine
+  - family-names: Wick
+    given-names: Wolfgang
+  - family-names: Bendszus
+    given-names: Martin
+  - family-names: Maier-Hein
+    given-names: Klaus H.
+  - family-names: Kickingereder
+    given-names: Philipp
+  year: 2019
+  journal: Human Brain Mapping
+  volume: 40
+  issue: '17'
+  start: '4952'
+  end: '4964'
+  doi: 10.1002/hbm.24750
+- type: article
+  title: 'IC-P-174: Fast Automatic Segmentation of Hippocampal Subfields and Medial Temporal Lobe Subregions
+    In 3 Tesla and 7 Tesla T2-Weighted MRI'
+  authors:
+  - family-names: Yushkevich
+    given-names: Paul A.
+  - family-names: Pluta
+    given-names: John
+  - family-names: Wang
+    given-names: Hongzhi
+  - family-names: Wisse
+    given-names: Laura E.M.
+  - family-names: Das
+    given-names: Sandhitsu
+  - family-names: Wolk
+    given-names: David
+  year: 2016
+  journal: Alzheimer's & Dementia
+  volume: 12
+  issue: 7S Part 2
+  start: P126
+  end: P127
+  doi: 10.1016/j.jalz.2016.06.205
+- type: article
+  title: FastSurfer - A fast and accurate deep learning based neuroimaging pipeline
+  authors:
+  - family-names: Henschel
+    given-names: Leonie
+  - family-names: Conjeti
+    given-names: Sailesh
+  - family-names: Estrada
+    given-names: Santiago
+  - family-names: Diers
+    given-names: Kersten
+  - family-names: Fischl
+    given-names: Bruce
+  - family-names: Reuter
+    given-names: Martin
+  year: 2020
+  journal: NeuroImage
+  volume: 219
+  start: '117012'
+  doi: 10.1016/j.neuroimage.2020.117012
+- type: article
+  title: 'FastSurferVINN: Building resolution-independence into deep learning segmentation methods—A solution
+    for HighRes brain MRI'
+  authors:
+  - family-names: Henschel
+    given-names: Leonie
+  - family-names: Kügler
+    given-names: David
+  - family-names: Reuter
+    given-names: Martin
+  year: 2022
+  journal: NeuroImage
+  volume: 251
+  start: '118933'
+  doi: 10.1016/j.neuroimage.2022.118933
